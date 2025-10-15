@@ -206,7 +206,7 @@ def add_patient():
     db.session.add(new_patient)
     db.session.commit()
     flash('Patient successfully registered!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('patients'))
 
 @app.route('/delete_patient/<int:patient_id>')
 @login_required
@@ -215,7 +215,7 @@ def delete_patient(patient_id):
     db.session.delete(patient_to_delete)
     db.session.commit()
     flash('Patient and their appointments/records deleted.', 'danger')
-    return redirect(url_for('index'))
+    return redirect(url_for('patients'))
 
 @app.route('/add_appointment', methods=['POST'])
 @login_required
@@ -236,7 +236,7 @@ def add_appointment():
     db.session.add(new_appointment)
     db.session.commit()
     flash('Appointment successfully booked!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/update_appointment_status/<int:appointment_id>/<status>')
 @login_required
@@ -245,7 +245,7 @@ def update_appointment_status(appointment_id, status):
     appointment.status = status
     db.session.commit()
     flash(f'Appointment {status.lower()}!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/add_prescription', methods=['POST'])
 @login_required
@@ -258,19 +258,19 @@ def add_prescription():
     db.session.add(new_prescription)
     db.session.commit()
     flash('Prescription successfully added!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/upload_record', methods=['POST'])
 @login_required
 def upload_record():
     if 'file' not in request.files:
         flash('No file part', 'warning')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     file = request.files['file']
     patient_id = request.form['patient_id']
     if file.filename == '':
         flash('No selected file', 'warning')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         file.path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -279,10 +279,10 @@ def upload_record():
         db.session.add(new_record)
         db.session.commit()
         flash('File successfully uploaded!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     else:
         flash('File type not allowed', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
 @app.route('/uploads/<filename>')
 def get_file(filename):
@@ -401,6 +401,150 @@ def add_medication():
     flash('Medication added successfully!', 'success')
     return redirect(url_for('medications'))
 
+@app.route('/edit_medication/<int:medication_id>', methods=['POST'])
+@login_required
+def edit_medication(medication_id):
+    medication = Medication.query.get_or_404(medication_id)
+    medication.name = request.form['name']
+    medication.dosage = request.form['dosage']
+    medication.description = request.form['description']
+    medication.stock_quantity = int(request.form['stock_quantity']) if request.form['stock_quantity'] else 0
+    medication.unit_price = float(request.form['unit_price']) if request.form['unit_price'] else 0.0
+    db.session.commit()
+    flash('Medication updated successfully!', 'success')
+    return redirect(url_for('medications'))
+
+@app.route('/update_medication_stock/<int:medication_id>', methods=['POST'])
+@login_required
+def update_medication_stock(medication_id):
+    medication = Medication.query.get_or_404(medication_id)
+    new_stock = int(request.form['stock_quantity'])
+    medication.stock_quantity = new_stock
+    db.session.commit()
+    flash('Stock updated successfully!', 'success')
+    return redirect(url_for('medications'))
+
+@app.route('/delete_medication/<int:medication_id>')
+@login_required
+def delete_medication(medication_id):
+    medication = Medication.query.get_or_404(medication_id)
+    db.session.delete(medication)
+    db.session.commit()
+    flash('Medication deleted successfully!', 'success')
+    return redirect(url_for('medications'))
+
+@app.route('/doctor_profile/<int:doctor_id>')
+@login_required
+def doctor_profile(doctor_id):
+    doctor = Doctor.query.get_or_404(doctor_id)
+    # Get doctor's recent appointments
+    recent_appointments = Appointment.query.filter_by(doctor_id=doctor_id).order_by(Appointment.created_at.desc()).limit(5).all()
+    # Get doctor's availability
+    availability = DoctorAvailability.query.filter_by(doctor_id=doctor_id).all()
+    return jsonify({
+        'id': doctor.id,
+        'name': doctor.name,
+        'email': doctor.email,
+        'specialization': doctor.specialization,
+        'hospital': doctor.hospital,
+        'experience_years': doctor.experience_years,
+        'total_patients': doctor.total_patients,
+        'total_reviews': doctor.total_reviews,
+        'phone': doctor.phone,
+        'bio': doctor.bio,
+        'recent_appointments': [{
+            'id': apt.id,
+            'patient_name': apt.patient.name,
+            'date': apt.date,
+            'time': apt.time,
+            'status': apt.status
+        } for apt in recent_appointments],
+        'availability': [record.day_of_week for record in availability]
+    })
+
+@app.route('/send_message_to_doctor', methods=['POST'])
+@login_required
+def send_message_to_doctor():
+    receiver_id = request.form['receiver_id']
+    subject = request.form['subject']
+    content = request.form['content']
+    
+    new_message = Message(
+        sender_id=current_user.id,
+        receiver_id=receiver_id,
+        subject=subject,
+        content=content
+    )
+    db.session.add(new_message)
+    db.session.commit()
+    flash('Message sent successfully!', 'success')
+    return redirect(url_for('messages'))
+
+@app.route('/patient_profile/<int:patient_id>')
+@login_required
+def patient_profile(patient_id):
+    patient = Patient.query.get_or_404(patient_id)
+    # Get patient's appointments
+    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.created_at.desc()).all()
+    # Get patient's medical records
+    records = MedicalRecord.query.filter_by(patient_id=patient_id).order_by(MedicalRecord.id.desc()).all()
+    # Get patient's prescriptions
+    prescriptions = []
+    for apt in appointments:
+        for pres in apt.prescriptions:
+            prescriptions.append(pres)
+    
+    return jsonify({
+        'id': patient.id,
+        'name': patient.name,
+        'age': patient.age,
+        'gender': patient.gender,
+        'phone': patient.phone,
+        'email': patient.email,
+        'address': patient.address,
+        'weight': patient.weight,
+        'disease': patient.disease,
+        'status': patient.status,
+        'date_registered': patient.date_registered.strftime('%d %b %Y') if patient.date_registered else None,
+        'appointments': [{
+            'id': apt.id,
+            'doctor_name': apt.doctor.name,
+            'date': apt.date,
+            'time': apt.time,
+            'diagnosis': apt.diagnosis,
+            'status': apt.status,
+            'created_at': apt.created_at.strftime('%d %b %Y') if apt.created_at else None
+        } for apt in appointments],
+        'records': [{
+            'id': record.id,
+            'filename': record.filename
+        } for record in records],
+        'prescriptions': [{
+            'id': pres.id,
+            'medication': pres.medication,
+            'dosage': pres.dosage,
+            'notes': pres.notes,
+            'appointment_date': pres.appointment.date
+        } for pres in prescriptions]
+    })
+
+@app.route('/edit_patient/<int:patient_id>', methods=['POST'])
+@login_required
+def edit_patient(patient_id):
+    patient = Patient.query.get_or_404(patient_id)
+    patient.name = request.form['name']
+    patient.age = int(request.form['age']) if request.form['age'] else None
+    patient.gender = request.form['gender']
+    patient.phone = request.form['phone']
+    patient.email = request.form['email']
+    patient.address = request.form.get('address')
+    patient.weight = float(request.form['weight']) if request.form['weight'] else None
+    patient.disease = request.form['disease']
+    patient.status = request.form['status']
+    db.session.commit()
+    flash('Patient updated successfully!', 'success')
+    return redirect(url_for('patients'))
+
 @app.route('/documents')
 @login_required
 def documents():
@@ -462,4 +606,7 @@ def doctors_by_date():
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == '__main__':
-    app.run(host='192.168.113.198', port=5000, debug=True)
+   app.run(debug=True, host='127.0.0.1', port=5000)
+ 
+    
+   # --- app.run(host='192.168.113.198', port=5000, debug=True) ---

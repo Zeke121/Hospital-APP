@@ -164,13 +164,13 @@
                         {% endif %}
                         
                         <div class="medication-actions">
-                            <button class="btn-action btn-edit">
+                            <button class="btn-action btn-edit" onclick="openEditModal({{ medication.id }}, '{{ medication.name }}', '{{ medication.dosage }}', '{{ medication.description }}', {{ medication.stock_quantity or 0 }}, {{ medication.unit_price or 0 }})">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="btn-action btn-stock">
+                            <button class="btn-action btn-stock" onclick="openStockModal({{ medication.id }}, '{{ medication.name }}', {{ medication.stock_quantity or 0 }})">
                                 <i class="fas fa-boxes"></i> Update Stock
                             </button>
-                            <button class="btn-action btn-delete">
+                            <button class="btn-action btn-delete" onclick="confirmDelete({{ medication.id }}, '{{ medication.name }}')">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
@@ -217,6 +217,90 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Medication Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Medication</h3>
+            <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editForm" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit_name">Medication Name *</label>
+                    <input type="text" id="edit_name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_dosage">Dosage</label>
+                    <input type="text" id="edit_dosage" name="dosage">
+                </div>
+                <div class="form-group">
+                    <label for="edit_description">Description</label>
+                    <textarea id="edit_description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_stock_quantity">Stock Quantity</label>
+                        <input type="number" id="edit_stock_quantity" name="stock_quantity" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_unit_price">Unit Price ($)</label>
+                        <input type="number" id="edit_unit_price" name="unit_price" min="0" step="0.01">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Medication</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Update Stock Modal -->
+<div id="stockModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Stock</h3>
+            <span class="close" onclick="closeStockModal()">&times;</span>
+        </div>
+        <form id="stockForm" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Medication</label>
+                    <input type="text" id="stock_medication_name" readonly style="background: #f8f9fa;">
+                </div>
+                <div class="form-group">
+                    <label for="stock_quantity">New Stock Quantity *</label>
+                    <input type="number" id="stock_quantity" name="stock_quantity" min="0" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeStockModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <span class="close" onclick="closeDeleteModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="delete_medication_name"></strong>?</p>
+            <p class="text-danger">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <a href="#" id="delete_confirm_btn" class="btn btn-danger">Delete</a>
         </div>
     </div>
 </div>
@@ -546,6 +630,104 @@
     font-weight: 500;
 }
 
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-dark);
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.modal-header .close {
+    color: var(--text-light);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.modal-header .close:hover {
+    color: var(--danger);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-secondary {
+    background: var(--bg-light);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.text-danger {
+    color: var(--danger);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -566,7 +748,116 @@
     .stats-grid {
         grid-template-columns: 1fr;
     }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
 }
 </style>
+
+<script>
+// Edit Medication Modal Functions
+function openEditModal(id, name, dosage, description, stockQuantity, unitPrice) {
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_dosage').value = dosage || '';
+    document.getElementById('edit_description').value = description || '';
+    document.getElementById('edit_stock_quantity').value = stockQuantity || 0;
+    document.getElementById('edit_unit_price').value = unitPrice || 0;
+    
+    // Update form action URL
+    document.getElementById('editForm').action = `/edit_medication/${id}`;
+    
+    // Show modal
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Update Stock Modal Functions
+function openStockModal(id, name, currentStock) {
+    document.getElementById('stock_medication_name').value = name;
+    document.getElementById('stock_quantity').value = currentStock || 0;
+    
+    // Update form action URL
+    document.getElementById('stockForm').action = `/update_medication_stock/${id}`;
+    
+    // Show modal
+    document.getElementById('stockModal').style.display = 'block';
+}
+
+function closeStockModal() {
+    document.getElementById('stockModal').style.display = 'none';
+}
+
+// Delete Confirmation Modal Functions
+function confirmDelete(id, name) {
+    document.getElementById('delete_medication_name').textContent = name;
+    document.getElementById('delete_confirm_btn').href = `/delete_medication/${id}`;
+    
+    // Show modal
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const editModal = document.getElementById('editModal');
+    const stockModal = document.getElementById('stockModal');
+    const deleteModal = document.getElementById('deleteModal');
+    
+    if (event.target === editModal) {
+        closeEditModal();
+    }
+    if (event.target === stockModal) {
+        closeStockModal();
+    }
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+}
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeEditModal();
+        closeStockModal();
+        closeDeleteModal();
+    }
+});
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-input');
+    const medicationCards = document.querySelectorAll('.medication-card');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            medicationCards.forEach(card => {
+                const medicationName = card.querySelector('.medication-title h4').textContent.toLowerCase();
+                const dosage = card.querySelector('.dosage') ? card.querySelector('.dosage').textContent.toLowerCase() : '';
+                const description = card.querySelector('.medication-description p') ? card.querySelector('.medication-description p').textContent.toLowerCase() : '';
+                
+                if (medicationName.includes(searchTerm) || dosage.includes(searchTerm) || description.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
 {% endblock %}
 

@@ -170,12 +170,12 @@
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="#" class="btn-action btn-view" title="View Details">
+                                        <button class="btn-action btn-view" title="View Details" onclick="viewPatientProfile({{ patient.id }})">
                                             <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="#" class="btn-action btn-edit" title="Edit Patient">
+                                        </button>
+                                        <button class="btn-action btn-edit" title="Edit Patient" onclick="editPatient({{ patient.id }}, '{{ patient.name }}', {{ patient.age or 'null' }}, '{{ patient.gender or '' }}', '{{ patient.phone or '' }}', '{{ patient.email or '' }}', '{{ patient.address or '' }}', {{ patient.weight or 'null' }}, '{{ patient.disease or '' }}', '{{ patient.status or 'Active' }}')">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <a href="{{ url_for('delete_patient', patient_id=patient.id) }}" class="btn-action btn-delete" title="Delete Patient" onclick="return confirm('Are you sure you want to delete this patient?')">
                                             <i class="fas fa-trash"></i>
                                         </a>
@@ -192,6 +192,96 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Patient Profile Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-content profile-modal">
+        <div class="modal-header">
+            <h3 id="profile-patient-name">Patient Profile</h3>
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="profile-content">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading profile...</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Patient Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Patient</h3>
+            <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editForm" method="POST">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_name">Patient Name *</label>
+                        <input type="text" id="edit_name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_age">Age</label>
+                        <input type="number" id="edit_age" name="age" min="0" max="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_gender">Gender</label>
+                        <select id="edit_gender" name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_phone">Phone Number</label>
+                        <input type="tel" id="edit_phone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_email">Email</label>
+                        <input type="email" id="edit_email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_weight">Weight (kg)</label>
+                        <input type="number" id="edit_weight" name="weight" step="0.1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_address">Address</label>
+                        <input type="text" id="edit_address" name="address">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_disease">Disease/Condition</label>
+                        <input type="text" id="edit_disease" name="disease">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_status">Status</label>
+                        <select id="edit_status" name="status">
+                            <option value="Active">Active</option>
+                            <option value="Recovered">Recovered</option>
+                            <option value="Deceased">Deceased</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Patient</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -416,6 +506,236 @@
     padding: 2rem;
 }
 
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.profile-modal {
+    max-width: 800px;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-dark);
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.modal-header .close {
+    color: var(--text-light);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.modal-header .close:hover {
+    color: var(--danger);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-secondary {
+    background: var(--bg-light);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-light);
+}
+
+.loading-spinner i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary-blue);
+}
+
+.profile-content {
+    display: none;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-blue);
+    margin: 0 auto 1rem;
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.profile-info {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.profile-stat {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 8px;
+}
+
+.profile-stat-number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    margin-bottom: 0.25rem;
+}
+
+.profile-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.profile-details {
+    margin-bottom: 2rem;
+}
+
+.profile-details h4 {
+    color: var(--text-dark);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.profile-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-light);
+}
+
+.profile-contact i {
+    width: 16px;
+    color: var(--primary-blue);
+}
+
+.appointments-section, .records-section, .prescriptions-section {
+    margin-top: 2rem;
+}
+
+.appointment-item, .record-item, .prescription-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-light);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.appointment-details {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.appointment-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: rgba(255, 193, 7, 0.2);
+    color: #856404;
+}
+
+.status-accepted {
+    background: rgba(40, 167, 69, 0.2);
+    color: #155724;
+}
+
+.status-completed {
+    background: rgba(0, 123, 255, 0.2);
+    color: #004085;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -429,7 +749,222 @@
     .patients-table td {
         padding: 0.75rem 0.5rem;
     }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+    }
+    
+    .profile-modal {
+        max-width: 95%;
+    }
+    
+    .profile-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
 }
 </style>
+
+<script>
+// Patient Profile Modal Functions
+function viewPatientProfile(patientId) {
+    // Show modal with loading spinner
+    document.getElementById('profileModal').style.display = 'block';
+    document.getElementById('profile-content').innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading profile...</p>
+        </div>
+    `;
+    
+    // Fetch patient profile data
+    fetch(`/patient_profile/${patientId}`)
+        .then(response => response.json())
+        .then(data => {
+            displayPatientProfile(data);
+        })
+        .catch(error => {
+            console.error('Error fetching patient profile:', error);
+            document.getElementById('profile-content').innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading profile. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+function displayPatientProfile(patient) {
+    document.getElementById('profile-patient-name').textContent = patient.name;
+    document.getElementById('profile-content').innerHTML = `
+        <div class="profile-content">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <img src="https://via.placeholder.com/100x100/007bff/ffffff?text=${patient.name[0]}" alt="${patient.name}">
+                </div>
+                <div class="profile-name">${patient.name}</div>
+                <div class="profile-info">
+                    ${patient.age ? `${patient.age} years old` : ''} ${patient.gender ? `• ${patient.gender}` : ''}
+                    ${patient.weight ? `• ${patient.weight} kg` : ''}
+                </div>
+                <div class="profile-info">
+                    Status: <span class="status-badge status-${(patient.status || 'active').toLowerCase()}">${patient.status || 'Active'}</span>
+                </div>
+            </div>
+            
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <span class="profile-stat-number">${patient.appointments ? patient.appointments.length : 0}</span>
+                    <span class="profile-stat-label">Total Appointments</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-number">${patient.prescriptions ? patient.prescriptions.length : 0}</span>
+                    <span class="profile-stat-label">Prescriptions</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-number">${patient.records ? patient.records.length : 0}</span>
+                    <span class="profile-stat-label">Medical Records</span>
+                </div>
+            </div>
+            
+            <div class="profile-details">
+                <h4>Personal Information</h4>
+                ${patient.phone ? `<div class="profile-contact"><i class="fas fa-phone"></i> ${patient.phone}</div>` : ''}
+                ${patient.email ? `<div class="profile-contact"><i class="fas fa-envelope"></i> ${patient.email}</div>` : ''}
+                ${patient.address ? `<div class="profile-contact"><i class="fas fa-map-marker-alt"></i> ${patient.address}</div>` : ''}
+                ${patient.disease ? `<div class="profile-contact"><i class="fas fa-stethoscope"></i> ${patient.disease}</div>` : ''}
+                ${patient.date_registered ? `<div class="profile-contact"><i class="fas fa-calendar"></i> Registered: ${patient.date_registered}</div>` : ''}
+            </div>
+            
+            ${patient.appointments && patient.appointments.length > 0 ? `
+                <div class="appointments-section">
+                    <h4>Recent Appointments</h4>
+                    ${patient.appointments.slice(0, 5).map(apt => `
+                        <div class="appointment-item">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-dark);">${apt.doctor_name}</div>
+                                <div class="appointment-details">${apt.date} at ${apt.time}</div>
+                                ${apt.diagnosis ? `<div class="appointment-details">Diagnosis: ${apt.diagnosis}</div>` : ''}
+                            </div>
+                            <span class="appointment-status status-${apt.status.toLowerCase()}">${apt.status}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            ${patient.prescriptions && patient.prescriptions.length > 0 ? `
+                <div class="prescriptions-section">
+                    <h4>Recent Prescriptions</h4>
+                    ${patient.prescriptions.slice(0, 5).map(pres => `
+                        <div class="prescription-item">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-dark);">${pres.medication}</div>
+                                <div class="appointment-details">${pres.dosage} • ${pres.appointment_date}</div>
+                                ${pres.notes ? `<div class="appointment-details">${pres.notes}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            ${patient.records && patient.records.length > 0 ? `
+                <div class="records-section">
+                    <h4>Medical Records</h4>
+                    ${patient.records.slice(0, 5).map(record => `
+                        <div class="record-item">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-dark);">${record.filename}</div>
+                            </div>
+                            <a href="/uploads/${record.filename}" target="_blank" class="btn-action btn-view">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+// Edit Patient Modal Functions
+function editPatient(id, name, age, gender, phone, email, address, weight, disease, status) {
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_age').value = age || '';
+    document.getElementById('edit_gender').value = gender || '';
+    document.getElementById('edit_phone').value = phone || '';
+    document.getElementById('edit_email').value = email || '';
+    document.getElementById('edit_address').value = address || '';
+    document.getElementById('edit_weight').value = weight || '';
+    document.getElementById('edit_disease').value = disease || '';
+    document.getElementById('edit_status').value = status || 'Active';
+    
+    // Update form action URL
+    document.getElementById('editForm').action = `/edit_patient/${id}`;
+    
+    // Show modal
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const profileModal = document.getElementById('profileModal');
+    const editModal = document.getElementById('editModal');
+    
+    if (event.target === profileModal) {
+        closeProfileModal();
+    }
+    if (event.target === editModal) {
+        closeEditModal();
+    }
+}
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeProfileModal();
+        closeEditModal();
+    }
+});
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-input');
+    const patientRows = document.querySelectorAll('.patients-table tbody tr');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            patientRows.forEach(row => {
+                const patientName = row.querySelector('.patient-info span').textContent.toLowerCase();
+                const patientAge = row.cells[1].textContent.toLowerCase();
+                const patientGender = row.cells[2].textContent.toLowerCase();
+                const patientDisease = row.cells[4].textContent.toLowerCase();
+                const patientPhone = row.cells[5].textContent.toLowerCase();
+                
+                if (patientName.includes(searchTerm) || patientAge.includes(searchTerm) || 
+                    patientGender.includes(searchTerm) || patientDisease.includes(searchTerm) || 
+                    patientPhone.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
 {% endblock %}
 
