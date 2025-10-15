@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1>Hospital App</h1>
+            <span class="header-subtitle">Hospital Management System</span>
+        </div>
+        <div class="header-center">
+            <div class="search-container">
+                <input type="text" placeholder="Search" class="search-input">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </div>
+            <div class="user-profile">
+                {% if current_user.is_authenticated %}
+                    <img src="https://via.placeholder.com/40x40/007bff/ffffff?text={{ current_user.name[0] }}" alt="Profile" class="profile-picture">
+                    <span class="user-name">{{ current_user.name }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="login-link">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item active">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('doctors') }}" class="nav-item">
+                    <i class="fas fa-user-md"></i>
+                    <span>Doctors</span>
+                </a>
+                <a href="{{ url_for('patients') }}" class="nav-item">
+                    <i class="fas fa-bed"></i>
+                    <span>Patients</span>
+                </a>
+                <a href="{{ url_for('messages') }}" class="nav-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('medications') }}" class="nav-item">
+                    <i class="fas fa-pills"></i>
+                    <span>Medications</span>
+                </a>
+                <a href="{{ url_for('documents') }}" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Documents</span>
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon patient-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ total_patients }}</div>
+                        <div class="stat-label">New Patient</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon doctor-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ total_doctors }}</div>
+                        <div class="stat-label">Our Doctor</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon operation-icon">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ total_operations }}</div>
+                        <div class="stat-label">Operation</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon income-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">${{ "%.0f"|format(total_income) }}</div>
+                        <div class="stat-label">Income</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts and Best Doctor Section -->
+            <div class="charts-section">
+                <!-- Patient Status Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Patient Status</h3>
+                        <select class="chart-dropdown">
+                            <option>This Year</option>
+                            <option>Last Year</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="patientStatusChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-color recovered"></span>
+                            <span>Recovered</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color deaths"></span>
+                            <span>Death</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Doctor Card -->
+                <div class="best-doctor-card">
+                    <div class="doctor-header">
+                        <h3>Best Doctor</h3>
+                        <select class="chart-dropdown">
+                            <option>This Year</option>
+                            <option>Last Year</option>
+                        </select>
+                    </div>
+                    <div class="doctor-profile">
+                        <img src="https://via.placeholder.com/80x80/007bff/ffffff?text=JS" alt="Dr. Jackline Swai" class="doctor-avatar">
+                        <div class="doctor-info">
+                            <h4>{{ best_doctor.name if best_doctor else 'Dr. Jackline Swai' }}</h4>
+                            <p>{{ best_doctor.specialization if best_doctor else 'Endocrinologist' }} - {{ best_doctor.hospital if best_doctor else 'Mbezi Beach Hospital' }}</p>
+                        </div>
+                    </div>
+                    <div class="doctor-stats">
+                        <div class="doctor-stat">
+                            <span class="stat-label">Experiences</span>
+                            <span class="stat-value">{{ best_doctor.experience_years if best_doctor else 8 }} Years</span>
+                        </div>
+                        <div class="doctor-stat">
+                            <span class="stat-label">Patients</span>
+                            <span class="stat-value">{{ best_doctor.total_patients if best_doctor else 2598 }}</span>
+                        </div>
+                        <div class="doctor-stat">
+                            <span class="stat-label">Reviews</span>
+                            <span class="stat-value">{{ best_doctor.total_reviews if best_doctor else 1537 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tables Section -->
+            <div class="tables-section">
+                <!-- Appointment Requests -->
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Appointment Request</h3>
+                        <a href="#" class="see-all-link">See All</a>
+                    </div>
+                    <div class="table-container">
+                        <table class="appointment-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Disease</th>
+                                    <th>Phone</th>
+                                    <th>Date & Time</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in appointment_requests %}
+                                <tr>
+                                    <td>
+                                        <div class="patient-info">
+                                            <img src="https://via.placeholder.com/32x32/007bff/ffffff?text={{ appointment.patient.name[0] }}" alt="{{ appointment.patient.name }}" class="patient-avatar">
+                                            <span>{{ appointment.patient.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ appointment.patient.disease or appointment.diagnosis or 'General Checkup' }}</td>
+                                    <td>{{ appointment.patient.phone or 'N/A' }}</td>
+                                    <td>{{ appointment.date }} - {{ appointment.time }}</td>
+                                    <td>
+                                        {% if appointment.status == 'Accepted' %}
+                                            <span class="status-accepted">Accepted</span>
+                                        {% else %}
+                                            <div class="action-buttons">
+                                                <a href="{{ url_for('update_appointment_status', appointment_id=appointment.id, status='Accepted') }}" class="btn-accept">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                                <a href="{{ url_for('update_appointment_status', appointment_id=appointment.id, status='Rejected') }}" class="btn-reject">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="no-data">No appointment requests</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Patients -->
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Recent Patients</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="patients-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Gender</th>
+                                    <th>Weight</th>
+                                    <th>Disease</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for patient in recent_patients %}
+                                <tr>
+                                    <td>
+                                        <div class="patient-info">
+                                            <img src="https://via.placeholder.com/32x32/007bff/ffffff?text={{ patient.name[0] }}" alt="{{ patient.name }}" class="patient-avatar">
+                                            <span>{{ patient.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ patient.gender or 'N/A' }}</td>
+                                    <td>{{ patient.weight or 'N/A' }} kg</td>
+                                    <td>{{ patient.disease or 'N/A' }}</td>
+                                    <td>{{ patient.date_registered.strftime('%d %b') if patient.date_registered else 'N/A' }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ patient.status.lower() }}">
+                                            {{ patient.status or 'Active' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="no-data">No recent patients</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if current_user.is_authenticated %}
+            <!-- Quick Actions (Only for authenticated users) -->
+            <div class="quick-actions">
+                <div class="action-card">
+                    <h4>Add New Patient</h4>
+                    <form action="{{ url_for('add_patient') }}" method="POST" class="quick-form">
+                        <input type="text" name="name" placeholder="Patient Name" required>
+                        <input type="number" name="age" placeholder="Age" min="0" max="150">
+                        <select name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="tel" name="phone" placeholder="Phone Number">
+                        <input type="email" name="email" placeholder="Email">
+                        <input type="number" name="weight" placeholder="Weight (kg)" step="0.1">
+                        <input type="text" name="disease" placeholder="Disease/Condition">
+                        <button type="submit" class="btn-primary">Add Patient</button>
+                    </form>
+                </div>
+
+                <div class="action-card">
+                    <h4>Book Appointment</h4>
+                    <form action="{{ url_for('add_appointment') }}" method="POST" class="quick-form">
+                        <select name="patient_id" required>
+                            <option value="">Select Patient</option>
+                            {% for patient in recent_patients %}
+                            <option value="{{ patient.id }}">{{ patient.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="doctor_id" required>
+                            <option value="">Select Doctor</option>
+                            <option value="1">Dr. Antonio Murray (System Admin)</option>
+                            <option value="2">Dr. Jackline Swai (Endocrinologist)</option>
+                        </select>
+                        <input type="date" name="date" required>
+                        <input type="time" name="time" required>
+                        <textarea name="diagnosis" placeholder="Diagnosis/Notes" rows="2"></textarea>
+                        <button type="submit" class="btn-primary">Book Appointment</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js for the patient status chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Patient Status Chart
+    const ctx = document.getElementById('patientStatusChart').getContext('2d');
+    const patientStatusData = {{ patient_status_data | tojson }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: patientStatusData.map(item => item.month),
+            datasets: [{
+                label: 'Recovered',
+                data: patientStatusData.map(item => item.recovered),
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: false
+            }, {
+                label: 'Death',
+                data: patientStatusData.map(item => item.deaths),
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 200,
+                    ticks: {
+                        stepSize: 50
+                    }
+                }
+            },
+            elements: {
+                point: {
+                    radius: 4,
+                    hoverRadius: 6
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

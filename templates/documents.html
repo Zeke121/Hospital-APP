@@ -1,0 +1,720 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1>Hospital App</h1>
+            <span class="header-subtitle">Hospital Management System</span>
+        </div>
+        <div class="header-center">
+            <div class="search-container">
+                <input type="text" placeholder="Search documents..." class="search-input">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </div>
+            <div class="user-profile">
+                {% if current_user.is_authenticated %}
+                    <img src="https://via.placeholder.com/40x40/007bff/ffffff?text={{ current_user.name[0] }}" alt="Profile" class="profile-picture">
+                    <span class="user-name">{{ current_user.name }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="login-link">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('doctors') }}" class="nav-item">
+                    <i class="fas fa-user-md"></i>
+                    <span>Doctors</span>
+                </a>
+                <a href="{{ url_for('patients') }}" class="nav-item">
+                    <i class="fas fa-bed"></i>
+                    <span>Patients</span>
+                </a>
+                <a href="{{ url_for('messages') }}" class="nav-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('medications') }}" class="nav-item">
+                    <i class="fas fa-pills"></i>
+                    <span>Medications</span>
+                </a>
+                <a href="{{ url_for('documents') }}" class="nav-item active">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Documents</span>
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <h2>Documents</h2>
+                <p>Manage and organize hospital documents and files</p>
+            </div>
+
+            <!-- Upload Document -->
+            <div class="upload-section">
+                <div class="section-header">
+                    <h3>Upload New Document</h3>
+                </div>
+                <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data" class="upload-form">
+                    <div class="form-row">
+                        <div class="form-group file-group">
+                            <label for="file">Choose File</label>
+                            <input type="file" id="file" name="file" required accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif">
+                            <div class="file-info">
+                                <span class="file-text">No file selected</span>
+                                <i class="fas fa-upload"></i>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <input type="text" id="description" name="description" placeholder="Brief description of the document">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Document
+                    </button>
+                </form>
+            </div>
+
+            <!-- Documents List -->
+            <div class="documents-section">
+                <div class="section-header">
+                    <h3>Document Library ({{ documents|length }})</h3>
+                    <div class="view-options">
+                        <button class="view-btn active" onclick="toggleView('grid')">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="view-btn" onclick="toggleView('list')">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Grid View -->
+                <div id="grid-view" class="documents-grid">
+                    {% for document in documents %}
+                    <div class="document-card">
+                        <div class="document-icon">
+                            {% if document.file_type == 'pdf' %}
+                                <i class="fas fa-file-pdf"></i>
+                            {% elif document.file_type in ['doc', 'docx'] %}
+                                <i class="fas fa-file-word"></i>
+                            {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                <i class="fas fa-file-image"></i>
+                            {% elif document.file_type == 'txt' %}
+                                <i class="fas fa-file-alt"></i>
+                            {% else %}
+                                <i class="fas fa-file"></i>
+                            {% endif %}
+                        </div>
+                        <div class="document-info">
+                            <h4 class="document-name">{{ document.original_filename }}</h4>
+                            {% if document.description %}
+                            <p class="document-description">{{ document.description }}</p>
+                            {% endif %}
+                            <div class="document-meta">
+                                <span class="file-type">{{ document.file_type.upper() }}</span>
+                                <span class="file-size">{{ (document.file_size / 1024 / 1024)|round(2) }} MB</span>
+                                <span class="upload-date">{{ document.uploaded_at.strftime('%d %b %Y') }}</span>
+                            </div>
+                            {% if document.doctor %}
+                            <div class="uploaded-by">
+                                <i class="fas fa-user"></i>
+                                <span>Uploaded by {{ document.doctor.name }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="document-actions">
+                            <a href="{{ url_for('get_file', filename=document.filename) }}" class="btn-action btn-download" target="_blank">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                            <button class="btn-action btn-view" onclick="viewDocument('{{ document.filename }}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteDocument({{ document.id }})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="no-documents">
+                        <i class="fas fa-folder-open"></i>
+                        <h4>No Documents Found</h4>
+                        <p>Upload your first document to get started.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- List View -->
+                <div id="list-view" class="documents-list" style="display: none;">
+                    <div class="table-container">
+                        <table class="documents-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Uploaded By</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>
+                                        <div class="document-cell">
+                                            <div class="document-icon-small">
+                                                {% if document.file_type == 'pdf' %}
+                                                    <i class="fas fa-file-pdf"></i>
+                                                {% elif document.file_type in ['doc', 'docx'] %}
+                                                    <i class="fas fa-file-word"></i>
+                                                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                                    <i class="fas fa-file-image"></i>
+                                                {% elif document.file_type == 'txt' %}
+                                                    <i class="fas fa-file-alt"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="document-details">
+                                                <span class="document-name">{{ document.original_filename }}</span>
+                                                {% if document.description %}
+                                                <span class="document-description">{{ document.description }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="file-type-badge">{{ document.file_type.upper() }}</span>
+                                    </td>
+                                    <td>{{ (document.file_size / 1024 / 1024)|round(2) }} MB</td>
+                                    <td>{{ document.doctor.name if document.doctor else 'Unknown' }}</td>
+                                    <td>{{ document.uploaded_at.strftime('%d %b %Y') }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="{{ url_for('get_file', filename=document.filename) }}" class="btn-action btn-download" target="_blank" title="Download">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <button class="btn-action btn-view" onclick="viewDocument('{{ document.filename }}')" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn-action btn-delete" onclick="deleteDocument({{ document.id }})" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="no-data">No documents found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleView(viewType) {
+    const gridView = document.getElementById('grid-view');
+    const listView = document.getElementById('list-view');
+    const viewBtns = document.querySelectorAll('.view-btn');
+    
+    viewBtns.forEach(btn => btn.classList.remove('active'));
+    
+    if (viewType === 'grid') {
+        gridView.style.display = 'grid';
+        listView.style.display = 'none';
+        viewBtns[0].classList.add('active');
+    } else {
+        gridView.style.display = 'none';
+        listView.style.display = 'block';
+        viewBtns[1].classList.add('active');
+    }
+}
+
+function viewDocument(filename) {
+    // Open document in new tab/window
+    window.open('{{ url_for("get_file", filename="") }}' + filename, '_blank');
+}
+
+function deleteDocument(documentId) {
+    if (confirm('Are you sure you want to delete this document?')) {
+        // Implement delete functionality
+        console.log('Delete document:', documentId);
+    }
+}
+
+// File input handling
+document.getElementById('file').addEventListener('change', function(e) {
+    const fileText = document.querySelector('.file-text');
+    const fileName = e.target.files[0]?.name || 'No file selected';
+    fileText.textContent = fileName;
+});
+</script>
+
+<style>
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h2 {
+    color: var(--text-dark);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: var(--text-light);
+    font-size: 1rem;
+}
+
+.upload-section, .documents-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+    color: var(--text-dark);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.view-options {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-btn {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-light);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-btn.active {
+    background: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+.view-btn:hover {
+    background: var(--bg-light);
+    color: var(--text-dark);
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+}
+
+.form-group input[type="text"] {
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.file-group {
+    position: relative;
+}
+
+.file-group input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-info {
+    padding: 0.75rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-light);
+}
+
+.file-info:hover {
+    border-color: var(--primary-blue);
+    background: rgba(0, 123, 255, 0.05);
+}
+
+.file-text {
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.file-info i {
+    color: var(--primary-blue);
+    font-size: 1.2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    align-self: flex-start;
+}
+
+.btn-primary {
+    background: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--dark-blue);
+    transform: translateY(-2px);
+}
+
+.documents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.document-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.document-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-blue);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.document-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    word-break: break-word;
+}
+
+.document-description {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.document-meta {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.file-type {
+    background: var(--primary-blue);
+    color: var(--white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.file-size, .upload-date {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.uploaded-by {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.uploaded-by i {
+    color: var(--primary-blue);
+}
+
+.document-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-dark);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    flex: 1;
+    justify-content: center;
+}
+
+.btn-action:hover {
+    background: var(--bg-light);
+}
+
+.btn-download:hover {
+    background: var(--success);
+    color: var(--white);
+    border-color: var(--success);
+}
+
+.btn-view:hover {
+    background: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+.btn-delete:hover {
+    background: var(--danger);
+    color: var(--white);
+    border-color: var(--danger);
+}
+
+.no-documents {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+}
+
+.no-documents i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.no-documents h4 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+}
+
+.no-documents p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.documents-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+}
+
+.documents-table th {
+    background: var(--bg-light);
+    color: var(--text-dark);
+    font-weight: 600;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.documents-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.documents-table tr:hover {
+    background: var(--bg-light);
+}
+
+.document-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.document-icon-small {
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-blue);
+    font-size: 1rem;
+}
+
+.document-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.document-details .document-name {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.document-details .document-description {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.file-type-badge {
+    background: var(--primary-blue);
+    color: var(--white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn-action {
+    padding: 0.5rem;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+}
+
+.no-data {
+    text-align: center;
+    color: var(--text-light);
+    font-style: italic;
+    padding: 2rem;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .documents-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .documents-table {
+        font-size: 0.9rem;
+    }
+    
+    .documents-table th,
+    .documents-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .document-actions {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
+

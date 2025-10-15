@@ -1,0 +1,514 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1>Hospital App</h1>
+            <span class="header-subtitle">Hospital Management System</span>
+        </div>
+        <div class="header-center">
+            <div class="search-container">
+                <input type="text" placeholder="Search messages..." class="search-input">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </div>
+            <div class="user-profile">
+                {% if current_user.is_authenticated %}
+                    <img src="https://via.placeholder.com/40x40/007bff/ffffff?text={{ current_user.name[0] }}" alt="Profile" class="profile-picture">
+                    <span class="user-name">{{ current_user.name }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="login-link">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('doctors') }}" class="nav-item">
+                    <i class="fas fa-user-md"></i>
+                    <span>Doctors</span>
+                </a>
+                <a href="{{ url_for('patients') }}" class="nav-item">
+                    <i class="fas fa-bed"></i>
+                    <span>Patients</span>
+                </a>
+                <a href="{{ url_for('messages') }}" class="nav-item active">
+                    <i class="fas fa-envelope"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('medications') }}" class="nav-item">
+                    <i class="fas fa-pills"></i>
+                    <span>Medications</span>
+                </a>
+                <a href="{{ url_for('documents') }}" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Documents</span>
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <h2>Messages</h2>
+                <p>Communicate with other doctors and staff members</p>
+            </div>
+
+            <!-- Compose Message -->
+            <div class="compose-section">
+                <div class="section-header">
+                    <h3>Compose New Message</h3>
+                </div>
+                <form action="{{ url_for('send_message') }}" method="POST" class="message-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="receiver_id">To</label>
+                            <select id="receiver_id" name="receiver_id" required>
+                                <option value="">Select Doctor</option>
+                                {% for doctor in all_doctors %}
+                                <option value="{{ doctor.id }}">{{ doctor.name }} - {{ doctor.specialization or 'General' }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" name="subject" required placeholder="Message subject">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="content">Message</label>
+                        <textarea id="content" name="content" rows="4" required placeholder="Type your message here..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Send Message
+                    </button>
+                </form>
+            </div>
+
+            <!-- Messages Tabs -->
+            <div class="messages-section">
+                <div class="messages-tabs">
+                    <button class="tab-btn active" onclick="showTab('received')">Received Messages ({{ received_messages|length }})</button>
+                    <button class="tab-btn" onclick="showTab('sent')">Sent Messages ({{ sent_messages|length }})</button>
+                </div>
+
+                <!-- Received Messages -->
+                <div id="received-tab" class="tab-content active">
+                    <div class="messages-list">
+                        {% for message in received_messages %}
+                        <div class="message-card {% if not message.is_read %}unread{% endif %}">
+                            <div class="message-header">
+                                <div class="sender-info">
+                                    <img src="https://via.placeholder.com/40x40/007bff/ffffff?text={{ message.sender.name[0] if message.sender else 'S' }}" alt="Sender" class="sender-avatar">
+                                    <div class="sender-details">
+                                        <h4>{{ message.sender.name if message.sender else 'System' }}</h4>
+                                        <span class="message-time">{{ message.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+                                    </div>
+                                </div>
+                                {% if not message.is_read %}
+                                <span class="unread-badge">New</span>
+                                {% endif %}
+                            </div>
+                            <div class="message-content">
+                                <h5 class="message-subject">{{ message.subject }}</h5>
+                                <p class="message-text">{{ message.content }}</p>
+                            </div>
+                            <div class="message-actions">
+                                <button class="btn-action btn-reply">
+                                    <i class="fas fa-reply"></i> Reply
+                                </button>
+                                <button class="btn-action btn-delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="no-messages">
+                            <i class="fas fa-inbox"></i>
+                            <p>No received messages</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Sent Messages -->
+                <div id="sent-tab" class="tab-content">
+                    <div class="messages-list">
+                        {% for message in sent_messages %}
+                        <div class="message-card">
+                            <div class="message-header">
+                                <div class="sender-info">
+                                    <img src="https://via.placeholder.com/40x40/007bff/ffffff?text={{ current_user.name[0] }}" alt="You" class="sender-avatar">
+                                    <div class="sender-details">
+                                        <h4>You</h4>
+                                        <span class="message-time">{{ message.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+                                    </div>
+                                </div>
+                                <span class="sent-badge">Sent</span>
+                            </div>
+                            <div class="message-content">
+                                <h5 class="message-subject">To: {{ message.receiver.name if message.receiver else 'Unknown' }}</h5>
+                                <h5 class="message-subject">{{ message.subject }}</h5>
+                                <p class="message-text">{{ message.content }}</p>
+                            </div>
+                            <div class="message-actions">
+                                <button class="btn-action btn-delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="no-messages">
+                            <i class="fas fa-paper-plane"></i>
+                            <p>No sent messages</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(tab => tab.classList.remove('active'));
+    
+    // Remove active class from all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Show selected tab content
+    document.getElementById(tabName + '-tab').classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+}
+</script>
+
+<style>
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h2 {
+    color: var(--text-dark);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: var(--text-light);
+    font-size: 1rem;
+}
+
+.compose-section, .messages-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+    color: var(--text-dark);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.message-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--white);
+    font-family: inherit;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    align-self: flex-start;
+}
+
+.btn-primary {
+    background: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--dark-blue);
+    transform: translateY(-2px);
+}
+
+.messages-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn.active {
+    color: var(--primary-blue);
+    border-bottom-color: var(--primary-blue);
+}
+
+.tab-btn:hover {
+    color: var(--text-dark);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.message-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.message-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.message-card.unread {
+    border-left: 4px solid var(--primary-blue);
+    background: rgba(0, 123, 255, 0.02);
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sender-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.sender-details h4 {
+    margin: 0;
+    color: var(--text-dark);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.message-time {
+    color: var(--text-light);
+    font-size: 0.8rem;
+}
+
+.unread-badge {
+    background: var(--primary-blue);
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.sent-badge {
+    background: var(--success);
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.message-content {
+    margin-bottom: 1rem;
+}
+
+.message-subject {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-dark);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.message-text {
+    margin: 0;
+    color: var(--text-light);
+    line-height: 1.5;
+}
+
+.message-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-dark);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-action:hover {
+    background: var(--bg-light);
+}
+
+.btn-reply:hover {
+    background: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+.btn-delete:hover {
+    background: var(--danger);
+    color: var(--white);
+    border-color: var(--danger);
+}
+
+.no-messages {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+}
+
+.no-messages i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.no-messages p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .messages-tabs {
+        flex-direction: column;
+    }
+    
+    .tab-btn {
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        border-right: none;
+    }
+    
+    .message-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+
